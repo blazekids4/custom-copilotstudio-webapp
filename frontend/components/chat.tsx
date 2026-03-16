@@ -65,7 +65,7 @@ export default function Chat({
     <div className="chat-container">
       <header className="chat-header">
         <div>
-          <h1>CBRE Copilot Studio Agent</h1>
+          <h1>Custom Copilot Studio Agent</h1>
           <span className="user-info">
             Signed in as{" "}
             <strong>{session.displayName || session.email}</strong>

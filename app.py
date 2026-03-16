@@ -1,4 +1,4 @@
-# app.py — Python backend for the CBRE Copilot Studio POC
+# app.py — Python backend for the Custom Copilot Studio POC
 #
 # Auth flow (OAuth2 Authorization Code):
 #   1. Frontend calls GET /api/auth/login → gets Entra ID authorize URL

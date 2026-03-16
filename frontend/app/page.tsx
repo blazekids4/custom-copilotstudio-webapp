@@ -113,7 +113,7 @@ export default function Home() {
     return (
       <div className="login-screen">
         <div className="login-card">
-          <h1>CBRE Copilot Studio Agent</h1>
+          <h1>Custom Copilot Studio Agent</h1>
           <p>
             Sign in with your Microsoft 365 account to chat with the Copilot
             Studio agent powered by your SharePoint knowledge base.

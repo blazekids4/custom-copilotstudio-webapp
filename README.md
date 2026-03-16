@@ -1,8 +1,12 @@
-# CBRE Copilot Studio POC
+# Custom Copilot Studio POC
 
 An external web application (outside the M365 ecosystem) that lets users sign in
 with their **Microsoft 365 credentials** and chat with a **Copilot Studio agent**
 grounded with SharePoint knowledge.
+
+![alt text](assets/web-ui.png)
+
+![alt text](assets/chat-ui.png)
 
 ## Architecture
 
@@ -42,10 +46,12 @@ grounded with SharePoint knowledge.
 
 1. Go to [Copilot Studio](https://copilotstudio.microsoft.com/).
 2. Create a new Agent and add a **SharePoint** knowledge source.
+![alt text](assets/studio.png)
 3. **Publish** the agent.
 4. Go to **Settings → Security → Authentication** and select **"Authenticate with Microsoft"**.
    > **Important:** Do *not* choose "Authenticate manually" — that triggers an in-chat
    > OAuth card flow that conflicts with the API-level bearer token used by this app.
+   ![alt text](assets/authentication.png)
 5. Get the connection string:
    - Go to **Settings → Advanced → Metadata** (or **Channels → Web app → Microsoft 365 Agents SDK**).
    - Copy the full connection string URL. It looks like:
@@ -62,7 +68,7 @@ grounded with SharePoint knowledge.
 
 1. Go to [Azure Portal → Entra ID → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade).
 2. Click **New registration**.
-   - **Name**: `CBRE Copilot POC`
+   - **Name**: `Custom Copilot POC`
    - **Supported account types**: *Accounts in this organizational directory only* (Single tenant)
    - **Redirect URI**: Platform = **Web**, URI = `http://localhost:3000`
 3. After registration, note:
@@ -102,9 +108,9 @@ REDIRECT_URI=http://localhost:3000
 COPILOT_CONNECTION_STRING=<Full connection string URL from Step 1>
 ```
 
-### Next.js frontend (`my-cbre-poc/.env.local`)
+### Next.js frontend (`my-custom-studio-poc/.env.local`)
 
-Copy `my-cbre-poc/.env.local.template` → `my-cbre-poc/.env.local`:
+Copy `my-custom-studio-poc/.env.local.template` → `my-custom-studio-poc/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3978
@@ -119,7 +125,7 @@ The frontend only needs the backend URL. All authentication is handled server-si
 ### Terminal 1 — Python backend
 
 ```bash
-cd cbre-copilot-retrieval-api
+cd custom-studio-copilot-retrieval-api
 python -m venv venv            # one-time setup
 venv\Scripts\activate          # Windows  (source venv/bin/activate on Mac/Linux)
 pip install -r requirements.txt
@@ -137,7 +143,7 @@ INFO:__main__:Starting Copilot Studio proxy on http://localhost:3978
 ### Terminal 2 — Next.js frontend
 
 ```bash
-cd my-cbre-poc
+cd my-custom-studio-poc
 npm install
 npm run dev
 ```
@@ -165,7 +171,7 @@ Open **http://localhost:3000** and click **Sign in with Microsoft**.
 | Component | Role |
 |-----------|------|
 | `app.py` | aiohttp web server. Handles the OAuth2 auth-code flow via MSAL `ConfidentialClientApplication`, caches user tokens by session, and proxies chat messages to the Copilot Studio agent using the `microsoft-agents` SDK `CopilotClient`. |
-| `my-cbre-poc/` | Next.js app that provides the login UI and chat interface. Redirects to Entra ID for sign-in, sends the authorization code to the backend, and uses the returned `sessionId` for subsequent chat requests. |
+| `my-custom-studio-poc/` | Next.js app that provides the login UI and chat interface. Redirects to Entra ID for sign-in, sends the authorization code to the backend, and uses the returned `sessionId` for subsequent chat requests. |
 | `start_server.py` | (Optional) Alternative server starter using the full Agents SDK hosting stack with JWT middleware — useful if you later want to integrate with Azure Bot Service. |
 
 ---
@@ -173,12 +179,12 @@ Open **http://localhost:3000** and click **Sign in with Microsoft**.
 ## Project Structure
 
 ```
-cbre-copilot-retrieval-api/
+custom-studio-copilot-retrieval-api/
 ├── app.py                    ← Python backend (auth + chat proxy)
 ├── start_server.py           ← Alternative Agents SDK server (optional)
 ├── requirements.txt          ← Python dependencies
 ├── .env.template             ← Backend env vars template
-└── my-cbre-poc/              ← Next.js frontend
+└── my-custom-studio-poc/              ← Next.js frontend
     ├── .env.local.template   ← Frontend env vars template
     ├── app/
     │   ├── layout.tsx        ← Root layout

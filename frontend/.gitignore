@@ -1,5 +1,5 @@
 venv
 .env
 node_modules/
-my-cbre-poc/node_modules/
-my-cbre-poc/.env.local 
+my-custom-studio-poc/node_modules/
+my-custom-studio-poc/.env.local 

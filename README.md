@@ -4,6 +4,8 @@ An external web application (outside the M365 ecosystem) that lets users sign in
 with their **Microsoft 365 credentials** and chat with a **Copilot Studio agent**
 grounded with SharePoint knowledge.
 
+## Screenshots 
+
 ![alt text](assets/web-ui.png)
 
 ![alt text](assets/chat-ui.png)

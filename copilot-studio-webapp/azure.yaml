@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: custom-copilotstudio-webapp
+
+metadata:
+  template: custom-copilotstudio-webapp
+
+services:
+  web:
+    host: containerapp
+    language: python
+    project: .
+    docker:
+      path: ./Dockerfile

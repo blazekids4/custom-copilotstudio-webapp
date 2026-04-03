@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "tenantId": { "value": "${TENANT_ID}" },
+    "clientId": { "value": "${CLIENT_ID}" },
+    "clientSecret": { "value": "${CLIENT_SECRET}" },
+    "redirectUri": { "value": "${REDIRECT_URI}" },
+    "copilotConnectionString": { "value": "${COPILOT_CONNECTION_STRING}" },
+    "allowedOrigin": { "value": "${ALLOWED_ORIGIN}" }
+  }
+}

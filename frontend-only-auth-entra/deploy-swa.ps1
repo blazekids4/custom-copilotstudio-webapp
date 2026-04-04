@@ -150,6 +150,17 @@ try {
         Write-Host "==> App registration created. Client ID: $clientId" -ForegroundColor Green
     }
 
+    # ── Create client secret on app registration ─────────────────────
+    Write-Host "==> Creating client secret on app registration..." -ForegroundColor Green
+    $secretJson = az ad app credential reset `
+        --id $clientId `
+        --display-name "SWA Auth" `
+        --years 2 `
+        --query "{password: password}" `
+        --output json | ConvertFrom-Json
+    $clientSecret = $secretJson.password
+    Write-Host "==> Client secret created." -ForegroundColor Green
+
     # ── Update staticwebapp.config.json with tenant & client ID ───────
     Write-Host "==> Updating staticwebapp.config.json with tenant and client ID..." -ForegroundColor Green
     $configPath = Join-Path $PSScriptRoot "staticwebapp.config.json"
@@ -160,12 +171,12 @@ try {
     # Copy config into the out/ folder so it's deployed
     Copy-Item $configPath -Destination "./out/staticwebapp.config.json" -Force
 
-    # ── Set the AAD_CLIENT_ID app setting on the SWA ──────────────────
-    Write-Host "==> Setting AAD_CLIENT_ID app setting..." -ForegroundColor Green
+    # ── Set the AAD_CLIENT_ID and AAD_CLIENT_SECRET app settings ──────
+    Write-Host "==> Setting AAD_CLIENT_ID and AAD_CLIENT_SECRET app settings..." -ForegroundColor Green
     az staticwebapp appsettings set `
         --name $AppName `
         --resource-group $ResourceGroup `
-        --setting-names "AAD_CLIENT_ID=$clientId" `
+        --setting-names "AAD_CLIENT_ID=$clientId" "AAD_CLIENT_SECRET=$clientSecret" `
         --output none
 
     # ── Get deployment token ──────────────────────────────────────────

@@ -1,5 +1,5 @@
-import MemoryGame from "@/components/memory-game";
+import Tetris from "@/components/tetris";
 
 export default function Home() {
-  return <MemoryGame />;
+  return <Tetris />;
 }

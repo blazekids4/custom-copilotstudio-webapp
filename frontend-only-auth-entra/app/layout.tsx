@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Emoji Match — Memory Game",
+  title: "Tetris",
   description:
-    "A pure frontend memory card game. No backend, no API calls — deploy to Azure Static Web App in minutes.",
+    "A classic Tetris game — pure frontend, deploy to Azure Static Web App in minutes.",
 };
 
 export default function RootLayout({

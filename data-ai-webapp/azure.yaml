@@ -1,0 +1,10 @@
+name: data-ai-webapp
+metadata:
+  template: data-ai-webapp
+services:
+  api:
+    project: .
+    host: containerapp
+    language: python
+    docker:
+      path: Dockerfile

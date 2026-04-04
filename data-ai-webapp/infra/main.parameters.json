@@ -1,0 +1,126 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "chatModelDeploymentName": { "value": "${AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4-1}" },
+    "embeddingModelDeploymentName": { "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}" },
+    "modelDeployments": {
+      "value": [
+        {
+          "deploymentName": "gpt-4-1",
+          "name": "gpt-4.1",
+          "format": "OpenAI",
+          "version": "2025-04-14",
+          "skuName": "Standard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "o4-mini",
+          "name": "o4-mini",
+          "format": "OpenAI",
+          "version": "2025-04-16",
+          "skuName": "Standard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "text-embedding-3-large",
+          "name": "text-embedding-3-large",
+          "format": "OpenAI",
+          "version": "1",
+          "skuName": "Standard",
+          "capacity": 87
+        },
+        {
+          "deploymentName": "gpt-5-4-dz",
+          "name": "gpt-5.4",
+          "format": "OpenAI",
+          "version": "2026-03-05",
+          "skuName": "DataZoneStandard",
+          "capacity": 75
+        },
+        {
+          "deploymentName": "gpt-5-mini-dz",
+          "name": "gpt-5-mini",
+          "format": "OpenAI",
+          "version": "2025-08-07",
+          "skuName": "DataZoneStandard",
+          "capacity": 75
+        },
+        {
+          "deploymentName": "gpt-5-nano-dz",
+          "name": "gpt-5-nano",
+          "format": "OpenAI",
+          "version": "2025-08-07",
+          "skuName": "DataZoneStandard",
+          "capacity": 500
+        },
+        {
+          "deploymentName": "model-router-dz",
+          "name": "model-router",
+          "format": "OpenAI",
+          "version": "2025-11-18",
+          "skuName": "DataZoneStandard",
+          "capacity": 75
+        },
+        {
+          "deploymentName": "o3-dz",
+          "name": "o3",
+          "format": "OpenAI",
+          "version": "2025-04-16",
+          "skuName": "DataZoneStandard",
+          "capacity": 75
+        },
+        {
+          "deploymentName": "gpt-image-1-5-dz",
+          "name": "gpt-image-1.5",
+          "format": "OpenAI",
+          "version": "2025-12-16",
+          "skuName": "DataZoneStandard",
+          "capacity": 1
+        },
+        {
+          "deploymentName": "text-embedding-3-small-dz",
+          "name": "text-embedding-3-small",
+          "format": "OpenAI",
+          "version": "1",
+          "skuName": "DataZoneStandard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "text-embedding-3-large-dz",
+          "name": "text-embedding-3-large",
+          "format": "OpenAI",
+          "version": "1",
+          "skuName": "DataZoneStandard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "gpt-5-3-chat-gs",
+          "name": "gpt-5.3-chat",
+          "format": "OpenAI",
+          "version": "2026-03-03",
+          "skuName": "GlobalStandard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "gpt-5-3-codex-gs",
+          "name": "gpt-5.3-codex",
+          "format": "OpenAI",
+          "version": "2026-02-24",
+          "skuName": "GlobalStandard",
+          "capacity": 250
+        },
+        {
+          "deploymentName": "gpt-5-1-codex-mini-gs",
+          "name": "gpt-5.1-codex-mini",
+          "format": "OpenAI",
+          "version": "2025-11-13",
+          "skuName": "GlobalStandard",
+          "capacity": 250
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.18
+
+# Azure SDKs
+azure-identity==1.19.0
+azure-storage-blob==12.24.0
+azure-search-documents==11.6.0b8
+azure-cosmos==4.9.0
+openai==1.58.1
+
+# Azure AI Foundry SDKs
+azure-ai-projects==1.0.0b7
+azure-ai-agents==1.0.0b4
+azure-ai-inference==1.0.0b9
+
+# Configuration
+python-dotenv==1.0.1

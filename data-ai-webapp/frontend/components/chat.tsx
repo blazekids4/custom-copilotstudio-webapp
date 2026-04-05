@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { sendMessage } from "@/lib/api";
+import { sendMessage, getConversation } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -10,12 +10,44 @@ interface Message {
   sources?: string[];
 }
 
-export default function Chat() {
+interface ChatProps {
+  conversationId?: string;
+  onNewChat: () => void;
+}
+
+export default function Chat({ conversationId: initialConversationId, onNewChat }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
   const [sending, setSending] = useState(false);
+  const [showSearchOptions, setShowSearchOptions] = useState(false);
+  const [searchMode, setSearchMode] = useState<string>("hybrid");
+  const [searchTop, setSearchTop] = useState<number>(5);
+  const [filterFolder, setFilterFolder] = useState("");
+  const [filterTags, setFilterTags] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load conversation history when a saved conversation is selected
+  useEffect(() => {
+    if (initialConversationId) {
+      setConversationId(initialConversationId);
+      getConversation(initialConversationId)
+        .then((conv) => {
+          setMessages(
+            conv.messages.map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }))
+          );
+        })
+        .catch(() => {
+          setMessages([]);
+        });
+    } else {
+      setMessages([]);
+      setConversationId(undefined);
+    }
+  }, [initialConversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,7 +62,16 @@ export default function Chat() {
     setSending(true);
 
     try {
-      const response = await sendMessage(text, conversationId);
+      const tagList = filterTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const response = await sendMessage(text, conversationId, {
+        searchMode,
+        searchTop,
+        filterFolder: filterFolder || undefined,
+        filterTags: tagList.length > 0 ? tagList : undefined,
+      });
       setConversationId(response.conversationId);
       setMessages((prev) => [
         ...prev,
@@ -56,16 +97,84 @@ export default function Chat() {
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(undefined);
+    onNewChat();
   };
 
   return (
     <>
       <div className="content-header">
         <h1>Chat</h1>
-        <button className="btn btn-secondary btn-sm" onClick={handleNewChat}>
-          + New Chat
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowSearchOptions(!showSearchOptions)}
+          >
+            ⚙ Search
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={handleNewChat}>
+            + New Chat
+          </button>
+        </div>
       </div>
+      {showSearchOptions && (
+        <div style={{
+          padding: "0.75rem 1rem",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--surface)",
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+          alignItems: "center",
+          fontSize: "0.85rem",
+        }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            Mode:
+            <select
+              value={searchMode}
+              onChange={(e) => setSearchMode(e.target.value)}
+              style={{ padding: "0.25rem 0.4rem", borderRadius: "4px", border: "1px solid var(--border)", fontSize: "0.85rem" }}
+            >
+              <option value="hybrid">Hybrid (keyword + vector)</option>
+              <option value="vector">Vector (broad semantic)</option>
+              <option value="keyword">Keyword (exact match)</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            Results:
+            <select
+              value={searchTop}
+              onChange={(e) => setSearchTop(Number(e.target.value))}
+              style={{ padding: "0.25rem 0.4rem", borderRadius: "4px", border: "1px solid var(--border)", fontSize: "0.85rem" }}
+            >
+              <option value={3}>3</option>
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50 (broad)</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            Folder:
+            <input
+              type="text"
+              value={filterFolder}
+              onChange={(e) => setFilterFolder(e.target.value)}
+              placeholder="e.g. reports/q1"
+              style={{ width: "120px", padding: "0.25rem 0.4rem", border: "1px solid var(--border)", borderRadius: "4px", fontSize: "0.85rem" }}
+            />
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            Tags:
+            <input
+              type="text"
+              value={filterTags}
+              onChange={(e) => setFilterTags(e.target.value)}
+              placeholder="finance, internal"
+              style={{ width: "140px", padding: "0.25rem 0.4rem", border: "1px solid var(--border)", borderRadius: "4px", fontSize: "0.85rem" }}
+            />
+          </label>
+        </div>
+      )}
       <div className="chat-container">
         <div className="chat-messages">
           {messages.length === 0 && (

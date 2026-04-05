@@ -14,7 +14,12 @@ resource searchService 'Microsoft.Search/searchServices@2024-03-01-preview' = {
     replicaCount: 1
     partitionCount: 1
     hostingMode: 'default'
-    semanticSearch: 'free'
+    semanticSearch: 'standard'
+    authOptions: {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http403'
+      }
+    }
   }
 }
 

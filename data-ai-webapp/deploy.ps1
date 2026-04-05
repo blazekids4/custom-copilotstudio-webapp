@@ -42,9 +42,44 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "`n=== Step 2: Provision infrastructure ===" -ForegroundColor Cyan
 azd provision
+if ($LASTEXITCODE -ne 0) {
+    # Check if the failure is the container image not yet pushed
+    $acrName = azd env get-value AZURE_CONTAINER_REGISTRY_NAME 2>$null
+    if ($acrName) {
+        Write-Host "Provisioning partially failed — pushing seed image to ACR and retrying..." -ForegroundColor Yellow
+
+        # Derive ACR endpoint from the name (outputs may not be saved after a failed provision)
+        $acrEndpoint = "${acrName}.azurecr.io"
+        az acr login --name $acrName
+        docker build -t "${acrEndpoint}/api:latest" .
+        docker push "${acrEndpoint}/api:latest"
+
+        Write-Host "Seed image pushed. Re-running provision..." -ForegroundColor Cyan
+        azd provision
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Provisioning failed on retry (exit code $LASTEXITCODE). Fix the errors above and re-run."
+            exit 1
+        }
+    } else {
+        Write-Error "Provisioning failed (exit code $LASTEXITCODE). Fix the errors above and re-run."
+        exit 1
+    }
+}
 
 Write-Host "`n=== Step 3: Configure AI Search indexer pipeline ===" -ForegroundColor Cyan
+# Load azd env values into the current shell so setup_search.py can read them
+azd env get-values | ForEach-Object {
+    if ($_ -match '^([^=]+)=(.*)$') {
+        $key = $Matches[1]
+        $val = $Matches[2].Trim('"')
+        [Environment]::SetEnvironmentVariable($key, $val, 'Process')
+    }
+}
 python -m backend.setup_search
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "AI Search setup failed. Check the error above."
+    exit 1
+}
 
 Write-Host "`n=== Step 4: Deploy backend (Container App) ===" -ForegroundColor Cyan
 azd deploy api
@@ -61,7 +96,7 @@ if ($swaName) {
     $deployToken = az staticwebapp secrets list --name $swaName --query "properties.apiKey" -o tsv
     npx @azure/static-web-apps-cli deploy ./frontend/out `
         --deployment-token $deployToken `
-        --env production
+        --env default
 }
 else {
     Write-Warning "SWA name not found in azd env. Deploy frontend manually."

@@ -11,6 +11,8 @@ Each subfolder is a self-contained project with its own README, deploy script, a
 | Folder | Description | Azure Service | Auth | Cost |
 |--------|-------------|---------------|------|------|
 | [`copilot-studio-webapp/`](copilot-studio-webapp/) | Full-stack app — Next.js frontend + Python backend that authenticates users via Entra ID and proxies chat to a Copilot Studio agent grounded with SharePoint knowledge | Azure Container Apps | Entra ID (OAuth2 confidential client) | Pay-per-use |
+| [`data-ai-webapp/`](data-ai-webapp/) | Full-stack RAG app — Azure AI Foundry + AI Search + Cosmos DB + Blob Storage with 13 model deployments, file management, and analytics | Azure Container Apps + Static Web Apps | Entra ID (SWA built-in) | Pay-per-use |
+| [`data-ai-webapp-demo/`](data-ai-webapp-demo/) | Static demo of the Data AI WebApp UI — mock data, no backend, no auth, shareable preview link | Azure Static Web Apps | None (public) | Free |
 | [`frontend-only-public/`](frontend-only-public/) | Static web app with no authentication — publicly accessible | Azure Static Web Apps | None (public) | Free |
 | [`frontend-only-auth-free/`](frontend-only-auth-free/) | Static web app with Free-tier auth — users sign in with Microsoft or GitHub (pre-configured providers, invitation-based access) | Azure Static Web Apps | Entra ID + GitHub (pre-configured) | Free |
 | [`frontend-only-auth-entra/`](frontend-only-auth-entra/) | Static web app with custom Entra ID auth — locked to your organization's tenant via a custom app registration | Azure Static Web Apps | Entra ID (custom app reg) | ~$9/mo (Standard) |
@@ -166,3 +168,5 @@ custom-copilotstudio-webapp/
 ├── .gitignore
 └── README.md                      ← This file
 ```
+
+> **Deploying `data-ai-webapp` for the first time?** Read [data-ai-webapp/DEPLOYMENT-TRIPWIRES.md](data-ai-webapp/DEPLOYMENT-TRIPWIRES.md) before running the deploy script.

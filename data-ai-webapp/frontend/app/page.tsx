@@ -14,12 +14,23 @@ export default function Home() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>("chat");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
 
   useEffect(() => {
     getUser()
       .then(setUser)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSelectConversation = (id: string) => {
+    setSelectedConversationId(id);
+    setActiveView("chat");
+  };
+
+  const handleNewChat = () => {
+    setSelectedConversationId(undefined);
+    setActiveView("chat");
+  };
 
   if (loading) {
     return (
@@ -44,10 +55,16 @@ export default function Home() {
       <Sidebar
         activeView={activeView}
         onNavigate={setActiveView}
+        onSelectConversation={handleSelectConversation}
         userName={user.userDetails}
       />
       <div className="main-content">
-        {activeView === "chat" && <Chat />}
+        {activeView === "chat" && (
+          <Chat
+            conversationId={selectedConversationId}
+            onNewChat={handleNewChat}
+          />
+        )}
         {activeView === "files" && <FileBrowser />}
         {activeView === "analytics" && <Analytics />}
       </div>

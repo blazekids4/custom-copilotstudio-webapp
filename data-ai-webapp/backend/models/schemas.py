@@ -4,6 +4,10 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     message: str
     conversationId: str | None = None
+    searchMode: str = "hybrid"  # "hybrid" | "vector" | "keyword"
+    searchTop: int = 5
+    filterFolder: str | None = None
+    filterTags: list[str] | None = None
 
 
 class ChatMessage(BaseModel):

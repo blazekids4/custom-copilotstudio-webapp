@@ -9,6 +9,15 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatRequest {
+  message: string;
+  conversationId?: string;
+  searchMode?: string;
+  searchTop?: number;
+  filterFolder?: string;
+  filterTags?: string[];
+}
+
 export interface ChatResponse {
   conversationId: string;
   message: string;
@@ -23,6 +32,8 @@ export interface FileInfo {
   uploadedAt: string;
   status: string;
   chunkCount: number;
+  folderPath: string;
+  tags: string[];
 }
 
 export interface ConversationSummary {

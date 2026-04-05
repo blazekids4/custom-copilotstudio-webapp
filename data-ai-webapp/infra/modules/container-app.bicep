@@ -5,6 +5,9 @@ param containerAppsEnvironmentName string
 param containerRegistryName string
 param env array = []
 
+@description('Container image to deploy. Defaults to a public placeholder for first-time provisioning.')
+param containerImage string = ''
+
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
   name: containerAppsEnvironmentName
 }
@@ -48,7 +51,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'api'
-          image: '${containerRegistry.properties.loginServer}/api:latest'
+          image: !empty(containerImage) ? containerImage : '${containerRegistry.properties.loginServer}/api:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'

@@ -30,14 +30,26 @@ export async function getUser(): Promise<UserInfo | null> {
     const res = await fetch("/.auth/me");
     const data = await res.json();
     const principal = data?.clientPrincipal;
-    if (!principal) return null;
+    if (!principal) {
+      // Fallback for anonymous access (auth disabled)
+      return {
+        userId: "anonymous",
+        userDetails: "Anonymous User",
+        identityProvider: "anonymous",
+      };
+    }
     return {
       userId: principal.userId,
       userDetails: principal.userDetails,
       identityProvider: principal.identityProvider,
     };
   } catch {
-    return null;
+    // Fallback for anonymous access (auth disabled)
+    return {
+      userId: "anonymous",
+      userDetails: "Anonymous User",
+      identityProvider: "anonymous",
+    };
   }
 }
 
@@ -45,16 +57,39 @@ export async function getUser(): Promise<UserInfo | null> {
 
 export async function sendMessage(
   message: string,
-  conversationId?: string
+  conversationId?: string,
+  options?: {
+    searchMode?: string;
+    searchTop?: number;
+    filterFolder?: string;
+    filterTags?: string[];
+  }
 ): Promise<ChatResponse> {
   return apiFetch<ChatResponse>("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ message, conversationId }),
+    body: JSON.stringify({
+      message,
+      conversationId,
+      searchMode: options?.searchMode,
+      searchTop: options?.searchTop,
+      filterFolder: options?.filterFolder,
+      filterTags: options?.filterTags,
+    }),
   });
 }
 
 export async function listConversations(): Promise<ConversationSummary[]> {
   return apiFetch<ConversationSummary[]>("/api/chat/conversations");
+}
+
+export async function getConversation(id: string): Promise<{
+  id: string;
+  title: string;
+  messages: { role: string; content: string; timestamp?: string }[];
+  createdAt: string;
+  updatedAt: string;
+}> {
+  return apiFetch(`/api/chat/conversations/${id}`);
 }
 
 export async function deleteConversation(id: string): Promise<void> {
@@ -63,9 +98,15 @@ export async function deleteConversation(id: string): Promise<void> {
 
 // ── Files ────────────────────────────────────────────────────
 
-export async function uploadFile(file: File): Promise<{ fileId: string; fileName: string; status: string }> {
+export async function uploadFile(
+  file: File,
+  folderPath?: string,
+  tags?: string[]
+): Promise<{ fileId: string; fileName: string; status: string }> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("folderPath", folderPath || "");
+  formData.append("tags", tags?.join(",") || "");
 
   const res = await fetch(`${API_BASE}/api/files`, {
     method: "POST",
@@ -84,6 +125,10 @@ export async function listFiles(): Promise<FileInfo[]> {
 
 export async function deleteFile(id: string): Promise<void> {
   await apiFetch(`/api/files/${id}`, { method: "DELETE" });
+}
+
+export function getFileDownloadUrl(id: string): string {
+  return `${API_BASE}/api/files/${id}/download`;
 }
 
 // ── Analytics ────────────────────────────────────────────────

@@ -5,6 +5,7 @@
     "environmentName": { "value": "${AZURE_ENV_NAME}" },
     "location": { "value": "${AZURE_LOCATION}" },
     "chatModelDeploymentName": { "value": "${AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4-1}" },
+    "searchLocation": { "value": "${AZURE_SEARCH_LOCATION=centralus}" },
     "embeddingModelDeploymentName": { "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}" },
     "modelDeployments": {
       "value": [
@@ -31,14 +32,6 @@
           "version": "1",
           "skuName": "Standard",
           "capacity": 87
-        },
-        {
-          "deploymentName": "gpt-5-4-dz",
-          "name": "gpt-5.4",
-          "format": "OpenAI",
-          "version": "2026-03-05",
-          "skuName": "DataZoneStandard",
-          "capacity": 75
         },
         {
           "deploymentName": "gpt-5-mini-dz",

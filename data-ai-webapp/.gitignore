@@ -1,0 +1,15 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+.next/
+out/
+.venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
+.azure/

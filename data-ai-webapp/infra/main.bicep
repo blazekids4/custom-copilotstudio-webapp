@@ -16,6 +16,12 @@ param chatModelDeploymentName string = 'gpt-4-1'
 @description('Default embedding model deployment name (used by backend)')
 param embeddingModelDeploymentName string = 'text-embedding-3-large'
 
+@description('Location for Azure AI Search (override when primary region is at capacity)')
+param searchLocation string = location
+
+@description('Container image for the backend. Leave empty on first deploy to use a placeholder.')
+param containerImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+
 // ── Derived names ──────────────────────────────────────────────
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -76,7 +82,7 @@ module search 'modules/ai-search.bicep' = {
   name: 'ai-search'
   params: {
     name: '${abbrs.searchSearchServices}${resourceToken}'
-    location: location
+    location: searchLocation
     tags: tags
   }
 }
@@ -114,6 +120,7 @@ module containerApp 'modules/container-app.bicep' = {
     tags: union(tags, { 'azd-service-name': 'api' })
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
     containerRegistryName: containerRegistry.outputs.name
+    containerImage: containerImage
     env: [
       { name: 'AZURE_STORAGE_ACCOUNT_URL', value: storage.outputs.endpoint }
       { name: 'AZURE_STORAGE_CONTAINER', value: 'uploads' }
@@ -125,6 +132,9 @@ module containerApp 'modules/container-app.bicep' = {
       { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT', value: chatModelDeploymentName }
       { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelDeploymentName }
       { name: 'FOUNDRY_PROJECT_ENDPOINT', value: openai.outputs.endpoint }
+      { name: 'FOUNDRY_MODEL_DEPLOYMENT_NAME', value: chatModelDeploymentName }
+      { name: 'AZURE_COSMOS_CONTAINER_CONVERSATIONS', value: 'conversations' }
+      { name: 'AZURE_COSMOS_CONTAINER_FILES', value: 'files' }
     ]
   }
 }
@@ -146,7 +156,9 @@ module rbac 'modules/rbac.bicep' = {
 // ── Outputs ────────────────────────────────────────────────────
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_APP_NAME string = containerApp.outputs.name
 output AZURE_CONTAINER_APP_URL string = containerApp.outputs.uri
+output AZURE_STATIC_WEB_APP_NAME string = staticWebApp.outputs.name
 output AZURE_STATIC_WEB_APP_URL string = staticWebApp.outputs.defaultHostname
 output AZURE_STORAGE_ACCOUNT_URL string = storage.outputs.endpoint
 output AZURE_COSMOS_ENDPOINT string = cosmos.outputs.endpoint

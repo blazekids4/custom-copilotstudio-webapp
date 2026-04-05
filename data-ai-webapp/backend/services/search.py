@@ -1,7 +1,12 @@
-"""Azure AI Search service — hybrid query against the indexer-managed index.
+"""Azure AI Search service — multiple search modes against the indexer-managed index.
 
 The index is populated automatically by the AI Search indexer pipeline
-(configured via setup_search.py). This module only handles queries.
+(configured via setup_search.py). This module handles queries only.
+
+Search modes:
+  - hybrid:   keyword + vector (default, best for targeted Q&A)
+  - vector:   pure vector similarity (broad semantic sweep)
+  - keyword:  pure text search (exact term matching)
 """
 
 from azure.identity import DefaultAzureCredential
@@ -24,24 +29,67 @@ def _get_client() -> SearchClient:
 
 
 async def search_documents(
-    query: str, user_id: str, top: int = 5
+    query: str,
+    user_id: str,
+    top: int = 5,
+    mode: str = "hybrid",
+    file_name: str | None = None,
+    content_type: str | None = None,
+    folder_path: str | None = None,
+    tags: list[str] | None = None,
 ) -> list[dict]:
-    """Run a hybrid (keyword + vector) search scoped to a user's files."""
-    query_embedding = await generate_embedding(query)
+    """Search the index with configurable mode and filters.
 
-    vector_query = VectorizedQuery(
-        vector=query_embedding,
-        k_nearest_neighbors=top,
-        fields="contentVector",
-    )
+    Args:
+        query: The user's search query.
+        user_id: Filter results to this user's documents.
+        top: Number of results to return. Use 20-50 for broad sweeps.
+        mode: "hybrid" (keyword+vector), "vector" (semantic only), "keyword" (text only).
+        file_name: Optional — filter to a specific file.
+        content_type: Optional — filter by content type (e.g. "application/pdf").
+        folder_path: Optional — filter to a specific folder.
+        tags: Optional — filter to documents matching ANY of these tags.
+    """
+    # Build OData filter (escape single quotes to prevent injection)
+    def _esc(val: str) -> str:
+        return val.replace("'", "''")
+
+    filters = [f"userId eq '{_esc(user_id)}'"]
+    if file_name:
+        filters.append(f"fileName eq '{_esc(file_name)}'")
+    if content_type:
+        filters.append(f"contentType eq '{_esc(content_type)}'")
+    if folder_path:
+        filters.append(f"folderPath eq '{_esc(folder_path)}'")
+    if tags:
+        # Match documents that have ANY of the specified tags
+        tag_clauses = " or ".join(
+            f"tags/any(t: t eq '{_esc(tag)}')" for tag in tags
+        )
+        filters.append(f"({tag_clauses})")
+    filter_expr = " and ".join(filters)
+
+    # Build search params based on mode
+    search_text = query if mode in ("hybrid", "keyword") else None
+    vector_queries = []
+
+    if mode in ("hybrid", "vector"):
+        query_embedding = await generate_embedding(query)
+        vector_queries.append(
+            VectorizedQuery(
+                vector=query_embedding,
+                k_nearest_neighbors=top,
+                fields="contentVector",
+            )
+        )
 
     async with _get_client() as client:
         results = await client.search(
-            search_text=query,
-            vector_queries=[vector_query],
-            filter=f"userId eq '{user_id}'",
+            search_text=search_text,
+            vector_queries=vector_queries if vector_queries else None,
+            filter=filter_expr,
             top=top,
-            select=["id", "content", "fileName"],
+            select=["id", "content", "fileName", "fileId", "contentType", "chunkIndex"],
         )
 
         docs = []
@@ -50,6 +98,9 @@ async def search_documents(
                 {
                     "content": result["content"],
                     "fileName": result.get("fileName", ""),
+                    "fileId": result.get("fileId", ""),
+                    "contentType": result.get("contentType", ""),
+                    "chunkIndex": result.get("chunkIndex", 0),
                     "score": result["@search.score"],
                 }
             )

@@ -4,7 +4,7 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 COPY frontend/ .
-RUN npm run build
+RUN chmod +x node_modules/.bin/next && npm run build
 
 # ── Stage 2: Python runtime ─────────────────────────────────
 FROM python:3.12-slim

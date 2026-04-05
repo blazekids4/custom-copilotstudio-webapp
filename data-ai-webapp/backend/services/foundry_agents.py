@@ -1,26 +1,26 @@
 """Azure AI Foundry Agent Service — create, manage, and invoke agents."""
 
 from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
-from azure.ai.agents.models import ListSortOrder
+from azure.ai.agents import AgentsClient
+from azure.ai.agents.models import ListSortOrder, ThreadMessageOptions, AgentThreadCreationOptions
 
 from backend.config import settings
 
 
 _credential = DefaultAzureCredential()
 
-_project_client: AIProjectClient | None = None
+_agents_client: AgentsClient | None = None
 
 
-def get_project_client() -> AIProjectClient:
-    """Get or create a reusable AIProjectClient instance."""
-    global _project_client
-    if _project_client is None:
-        _project_client = AIProjectClient(
+def get_agents_client() -> AgentsClient:
+    """Get or create a reusable AgentsClient instance."""
+    global _agents_client
+    if _agents_client is None:
+        _agents_client = AgentsClient(
             endpoint=settings.FOUNDRY_PROJECT_ENDPOINT,
             credential=_credential,
         )
-    return _project_client
+    return _agents_client
 
 
 async def create_agent(
@@ -30,7 +30,7 @@ async def create_agent(
     tools: list | None = None,
 ) -> dict:
     """Create a Foundry agent and return its metadata."""
-    client = get_project_client()
+    client = get_agents_client()
     kwargs = {
         "model": model or settings.FOUNDRY_MODEL_DEPLOYMENT,
         "name": name,
@@ -39,7 +39,7 @@ async def create_agent(
     if tools:
         kwargs["tools"] = tools
 
-    agent = client.agents.create_agent(**kwargs)
+    agent = client.create_agent(**kwargs)
     return {
         "agentId": agent.id,
         "name": agent.name,
@@ -54,35 +54,37 @@ async def run_agent_turn(
 
     Creates a new thread if thread_id is not provided.
     """
-    client = get_project_client()
+    client = get_agents_client()
 
-    # Create or reuse thread
     if thread_id:
-        thread = client.agents.threads.get(thread_id)
+        # Reuse existing thread — add user message and run
+        client.messages.create(
+            thread_id=thread_id, role="user", content=message
+        )
+        run = client.runs.create_and_process(
+            thread_id=thread_id, agent_id=agent_id
+        )
     else:
-        thread = client.agents.threads.create()
-
-    # Post user message
-    client.agents.messages.create(
-        thread_id=thread.id, role="user", content=message
-    )
-
-    # Run the agent
-    run = client.agents.runs.create_and_process(
-        thread_id=thread.id, agent_id=agent_id
-    )
+        # Create a new thread with the user message and run in one call
+        run = client.create_thread_and_process_run(
+            agent_id=agent_id,
+            thread=AgentThreadCreationOptions(
+                messages=[ThreadMessageOptions(role="user", content=message)]
+            ),
+        )
+        thread_id = run.thread_id
 
     if run.status == "failed":
         return {
-            "threadId": thread.id,
+            "threadId": thread_id,
             "status": "failed",
             "error": str(run.last_error),
             "response": "",
         }
 
     # Retrieve the latest assistant message
-    messages = client.agents.messages.list(
-        thread_id=thread.id, order=ListSortOrder.DESCENDING
+    messages = client.messages.list(
+        thread_id=thread_id, order=ListSortOrder.DESCENDING
     )
     response_text = ""
     for msg in messages:
@@ -91,7 +93,7 @@ async def run_agent_turn(
             break
 
     return {
-        "threadId": thread.id,
+        "threadId": thread_id,
         "status": "completed",
         "response": response_text,
     }
@@ -99,8 +101,8 @@ async def run_agent_turn(
 
 async def list_agents() -> list[dict]:
     """List all agents in the Foundry project."""
-    client = get_project_client()
-    agents = client.agents.list_agents()
+    client = get_agents_client()
+    agents = client.list_agents()
     return [
         {
             "agentId": a.id,
@@ -113,5 +115,5 @@ async def list_agents() -> list[dict]:
 
 async def delete_agent(agent_id: str) -> None:
     """Delete an agent by ID."""
-    client = get_project_client()
-    client.agents.delete_agent(agent_id)
+    client = get_agents_client()
+    client.delete_agent(agent_id)

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { listFiles, uploadFile, deleteFile } from "@/lib/api";
+import { listFiles, uploadFile, deleteFile, getFileDownloadUrl } from "@/lib/api";
 import type { FileInfo } from "@/lib/types";
 
 export default function FileBrowser() {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [folderPath, setFolderPath] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [showUploadForm, setShowUploadForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -21,12 +24,20 @@ export default function FileBrowser() {
     const selected = e.target.files;
     if (!selected || selected.length === 0) return;
 
+    const tags = tagInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     setUploading(true);
     try {
       for (const file of Array.from(selected)) {
-        await uploadFile(file);
+        await uploadFile(file, folderPath, tags);
       }
       loadFiles();
+      setFolderPath("");
+      setTagInput("");
+      setShowUploadForm(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -68,13 +79,45 @@ export default function FileBrowser() {
       <div className="content-body">
         <div
           className="upload-area"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setShowUploadForm(!showUploadForm)}
         >
-          <p>Click or drag files here to upload</p>
+          <p>Click to upload files</p>
           <p style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
-            Supports TXT, CSV, MD, JSON — up to 50 MB
+            Supports PDF, DOCX, TXT, CSV, MD, JSON — up to 50 MB
           </p>
         </div>
+
+        {showUploadForm && (
+          <div style={{ marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <label style={{ fontSize: "0.85rem", minWidth: "60px" }}>Folder:</label>
+              <input
+                type="text"
+                value={folderPath}
+                onChange={(e) => setFolderPath(e.target.value)}
+                placeholder="e.g. reports/q1 (optional)"
+                style={{ flex: 1, padding: "0.4rem 0.6rem", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "0.85rem" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <label style={{ fontSize: "0.85rem", minWidth: "60px" }}>Tags:</label>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="e.g. finance, quarterly, internal (comma-separated)"
+                style={{ flex: 1, padding: "0.4rem 0.6rem", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "0.85rem" }}
+              />
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading..." : "Choose Files"}
+            </button>
+          </div>
+        )}
 
         <div className="file-list">
           {files.map((f) => (
@@ -84,10 +127,23 @@ export default function FileBrowser() {
                 <span className="file-meta">
                   {formatSize(f.sizeBytes)} · {f.chunkCount} chunks ·{" "}
                   {new Date(f.uploadedAt).toLocaleDateString()}
+                  {f.folderPath && f.folderPath !== "/" && ` · 📁 ${f.folderPath}`}
                 </span>
+                {f.tags && f.tags.length > 0 && (
+                  <span className="file-meta">
+                    {f.tags.map((tag) => `#${tag}`).join(" ")}
+                  </span>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <span className={`file-status ${f.status}`}>{f.status}</span>
+                <a
+                  href={getFileDownloadUrl(f.id)}
+                  className="btn btn-sm btn-secondary"
+                  download
+                >
+                  Download
+                </a>
                 <button
                   className="btn btn-sm btn-danger"
                   onClick={() => handleDelete(f.id)}

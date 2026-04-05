@@ -19,11 +19,33 @@ async def _get_client() -> BlobServiceClient:
 
 
 async def upload_file(
-    file_bytes: bytes, file_name: str, content_type: str, user_id: str
+    file_bytes: bytes,
+    file_name: str,
+    content_type: str,
+    user_id: str,
+    folder_path: str = "",
+    tags: list[str] | None = None,
 ) -> dict:
-    """Upload a file to Blob Storage and return metadata."""
+    """Upload a file to Blob Storage and return metadata.
+
+    Blob path: {userId}/{folderPath}/{fileId}/{fileName}
+    Metadata stored on blob: userId, fileId, folderPath, tags (comma-separated)
+    """
     file_id = str(uuid.uuid4())
-    blob_name = f"{user_id}/{file_id}/{file_name}"
+    # Build blob path with optional subfolder
+    path_parts = [user_id]
+    if folder_path:
+        path_parts.append(folder_path.strip("/"))
+    path_parts.extend([file_id, file_name])
+    blob_name = "/".join(path_parts)
+
+    # Blob metadata (indexed by AI Search indexer)
+    blob_metadata = {
+        "userId": user_id,
+        "fileId": file_id,
+        "folderPath": folder_path or "/",
+        "tags": ",".join(tags) if tags else "",
+    }
 
     client = await _get_client()
     async with client:
@@ -32,7 +54,7 @@ async def upload_file(
             name=blob_name,
             data=file_bytes,
             content_settings={"content_type": content_type},
-            metadata={"userId": user_id, "fileId": file_id},
+            metadata=blob_metadata,
             overwrite=True,
         )
 
@@ -43,6 +65,8 @@ async def upload_file(
         "contentType": content_type,
         "sizeBytes": len(file_bytes),
         "blobName": blob_name,
+        "folderPath": folder_path or "/",
+        "tags": tags or [],
         "uploadedAt": datetime.now(timezone.utc).isoformat(),
         "status": "uploaded",
     }

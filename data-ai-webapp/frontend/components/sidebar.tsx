@@ -9,10 +9,11 @@ type View = "chat" | "files" | "analytics";
 interface SidebarProps {
   activeView: View;
   onNavigate: (view: View) => void;
+  onSelectConversation: (id: string) => void;
   userName: string;
 }
 
-export default function Sidebar({ activeView, onNavigate, userName }: SidebarProps) {
+export default function Sidebar({ activeView, onNavigate, onSelectConversation, userName }: SidebarProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
 
   useEffect(() => {
@@ -54,7 +55,11 @@ export default function Sidebar({ activeView, onNavigate, userName }: SidebarPro
         <div className="nav-section-label">Recent Conversations</div>
         <div className="conversation-list">
           {conversations.slice(0, 10).map((c) => (
-            <div key={c.id} className="conversation-item">
+            <div
+              key={c.id}
+              className="conversation-item"
+              onClick={() => onSelectConversation(c.id)}
+            >
               <span className="conversation-title">{c.title}</span>
               <button
                 className="btn btn-sm btn-secondary"

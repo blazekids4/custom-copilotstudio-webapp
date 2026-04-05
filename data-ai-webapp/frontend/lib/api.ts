@@ -30,26 +30,14 @@ export async function getUser(): Promise<UserInfo | null> {
     const res = await fetch("/.auth/me");
     const data = await res.json();
     const principal = data?.clientPrincipal;
-    if (!principal) {
-      // Fallback for anonymous access (auth disabled)
-      return {
-        userId: "anonymous",
-        userDetails: "Anonymous User",
-        identityProvider: "anonymous",
-      };
-    }
+    if (!principal) return null;
     return {
       userId: principal.userId,
       userDetails: principal.userDetails,
       identityProvider: principal.identityProvider,
     };
   } catch {
-    // Fallback for anonymous access (auth disabled)
-    return {
-      userId: "anonymous",
-      userDetails: "Anonymous User",
-      identityProvider: "anonymous",
-    };
+    return null;
   }
 }
 

@@ -82,13 +82,15 @@ az role assignment create \
 
 Go to **Settings → Secrets and variables → Actions → Variables** and add:
 
-| Variable                   | Value                                  |
-| -------------------------- | -------------------------------------- |
-| `AZURE_CLIENT_ID`          | `e9ae0b57-1057-4bcf-b9bf-cc8bede654a6` |
-| `AZURE_TENANT_ID`          | `6eef943b-5bf3-481a-8927-e07323bfe282` |
-| `AZURE_SUBSCRIPTION_ID`    | `86f1d17d-24ca-4294-8dcd-0d14ed6e8797` |
-| `AZURE_ENV_NAME`           | Your azd environment name (e.g. `dev`) |
-| `AZURE_LOCATION`           | Target region (e.g. `eastus2`)         |
+| Variable                     | Value                                  |
+| ---------------------------- | -------------------------------------- |
+| `AZURE_CLIENT_ID`            | `e9ae0b57-1057-4bcf-b9bf-cc8bede654a6` |
+| `AZURE_TENANT_ID`            | `6eef943b-5bf3-481a-8927-e07323bfe282` |
+| `AZURE_SUBSCRIPTION_ID`      | `86f1d17d-24ca-4294-8dcd-0d14ed6e8797` |
+| `AZURE_RESOURCE_GROUP`       | `rg-my-data-ai-app`                   |
+| `AZURE_CONTAINER_REGISTRY`   | `crplytko3h4tj7k`                     |
+| `AZURE_CONTAINER_APP`        | `ca-api-plytko3h4tj7k`                |
+| `AZURE_STATIC_WEB_APP`       | `swa-plytko3h4tj7k`                   |
 
 > These are **variables** (not secrets) because OIDC federated auth doesn't require any secret values.
 
@@ -105,8 +107,11 @@ The workflow lives at `.github/workflows/deploy-data-ai-webapp.yml`.
 
 ### What It Does
 
+No infrastructure provisioning — code deploys only. Backend and frontend deploy in parallel.
+
 ```
-Checkout → Install azd → OIDC Login → Provision Infra → Setup AI Search → Deploy Backend → Build Frontend → Deploy Frontend
+Checkout → OIDC Login → Build Docker Image → Push to ACR → Update Container App
+Checkout → OIDC Login → Build Frontend → Deploy to Static Web App
 ```
 
 ### Full Workflow
@@ -126,12 +131,13 @@ permissions:
   contents: read
 
 env:
-  AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
-  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  ACR_NAME: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+  CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
+  SWA_NAME: ${{ vars.AZURE_STATIC_WEB_APP }}
 
 jobs:
-  deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -141,40 +147,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install azd
-        uses: Azure/setup-azd@v2
-
-      - name: Log in with Azure (federated credentials)
-        run: |
-          azd auth login `
-            --client-id "${{ vars.AZURE_CLIENT_ID }}" `
-            --federated-credential-provider "github" `
-            --tenant-id "${{ vars.AZURE_TENANT_ID }}"
-        shell: pwsh
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Log in to Azure
+        uses: azure/login@v2
         with:
-          python-version: "3.12"
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Provision infrastructure
-        run: azd provision --no-prompt
-
-      - name: Set up AI Search index
+      - name: Build and push container image
         run: |
-          azd env get-values | ForEach-Object {
-            if ($_ -match '^([^=]+)=(.*)$') {
-              $key = $Matches[1]
-              $val = $Matches[2].Trim('"')
-              [Environment]::SetEnvironmentVariable($key, $val, 'Process')
-            }
-          }
-          pip install -r requirements.txt
-          python -m backend.setup_search
-        shell: pwsh
+          az acr login --name $ACR_NAME
+          IMAGE="${ACR_NAME}.azurecr.io/data-ai-webapp:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
 
-      - name: Deploy backend (Container App)
-        run: azd deploy api --no-prompt
+      - name: Deploy to Container App
+        run: |
+          az containerapp update \
+            --name $CONTAINER_APP \
+            --resource-group $RESOURCE_GROUP \
+            --image "${ACR_NAME}.azurecr.io/data-ai-webapp:${{ github.sha }}"
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-ai-webapp
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -187,10 +196,8 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy frontend (Static Web App)
-        working-directory: data-ai-webapp
+      - name: Deploy to Static Web App
         run: |
-          SWA_NAME=$(azd env get-value AZURE_STATIC_WEB_APP_NAME)
           DEPLOY_TOKEN=$(az staticwebapp secrets list --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
           npx @azure/static-web-apps-cli deploy ./frontend/out \
             --deployment-token "$DEPLOY_TOKEN" \

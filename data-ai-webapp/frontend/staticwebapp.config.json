@@ -1,19 +1,37 @@
 {
   "routes": [
     {
-      "route": "/api/*",
+      "route": "/.auth/login/github",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "statusCode": 404
+    },
+    {
+      "route": "/api/health",
       "allowedRoles": ["anonymous", "authenticated"]
     },
     {
+      "route": "/api/*",
+      "allowedRoles": ["authenticated"]
+    },
+    {
       "route": "/*",
-      "allowedRoles": ["anonymous", "authenticated"]
+      "allowedRoles": ["authenticated"]
     }
   ],
-  "responseOverrides": {},
+  "responseOverrides": {
+    "401": {
+      "statusCode": 302,
+      "redirect": "/.auth/login/aad?post_login_redirect_uri=.referrer"
+    }
+  },
   "navigationFallback": {
     "rewrite": "/index.html"
   },
-  "networking": {
-    "allowedIpRanges": ["AnyIPAddress"]
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY"
   }
 }

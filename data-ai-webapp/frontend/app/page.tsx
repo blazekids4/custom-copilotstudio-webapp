@@ -43,6 +43,7 @@ export default function Home() {
   }
 
   if (!user) {
+    window.location.href = "/.auth/login/aad";
     return (
       <div className="loading">
         <p>Redirecting to sign in...</p>

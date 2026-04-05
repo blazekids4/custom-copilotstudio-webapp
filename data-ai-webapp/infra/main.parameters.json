@@ -55,7 +55,7 @@
           "format": "OpenAI",
           "version": "2025-11-18",
           "skuName": "DataZoneStandard",
-          "capacity": 75
+          "capacity": 1
         },
         {
           "deploymentName": "o3-dz",
